@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.ksp)
+    id("org.jetbrains.kotlin.kapt")
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.parcelize)
@@ -70,7 +71,7 @@ android {
             isDebuggable = true
         }
     }
-    
+
     tasks.whenTaskAdded {
         if (name.startsWith("merge") && name.contains("JniLibFolders")) {
             dependsOn("buildGoLibraries")
@@ -109,38 +110,38 @@ android {
             jniLibs.srcDirs("libs/")
         }
     }
-    
+
     tasks.register<Exec>("buildGoLibraries") {
         group = "build"
         description = "Build Go libraries for Android"
-        
+
         val goDir = layout.projectDirectory.dir("src/main/go")
         val libsDir = layout.projectDirectory.dir("libs")
-        
+
         inputs.dir(goDir)
         outputs.files(
             libsDir.file("arm64-v8a/libnflog.so"),
             libsDir.file("armeabi-v7a/libnflog.so")
         )
         outputs.upToDateWhen { false }
-        
+
         workingDir(goDir)
-        
+
         val isWindows = org.gradle.internal.os.OperatingSystem.current().isWindows
         val buildScript = if (isWindows) "build-android.bat" else "build-android.sh"
-        
+
         if (isWindows) {
             commandLine("cmd", "/c", buildScript)
         } else {
             commandLine("bash", buildScript)
         }
-        
+
         doFirst {
             val buildScriptFile = goDir.file(buildScript).asFile
             if (!buildScriptFile.exists()) {
                 throw GradleException("Build script $buildScript not found in ${goDir.asFile}")
             }
-            
+
             libsDir.dir("arm64-v8a").asFile.mkdirs()
             libsDir.dir("armeabi-v7a").asFile.mkdirs()
         }
@@ -168,7 +169,8 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.hilt.common)
     ksp(libs.hilt.android.compiler)
-    ksp(libs.hilt.compile)
+    // AndroidX Hilt Work's compiler is a Java annotation processor, so run it with kapt.
+    kapt(libs.hilt.compile)
     implementation(libs.hilt.navigation.compose)
     implementation(libs.androidx.hilt.work)
 
