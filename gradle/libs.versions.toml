@@ -6,7 +6,7 @@ biometric = "1.2.0-alpha05"
 datastorePreferences = "1.1.7"
 dnsjava = "3.6.3"
 hilt = "2.57"
-hiltCompiler = "1.2.0"
+hiltCompiler = "1.4.0"
 hiltAndroidCompiler = "2.57"
 hiltNavigationCompose = "1.2.0"
 kotlin = "2.2.0"
@@ -48,8 +48,7 @@ androidx-compose-material-icons-extended = { group = "androidx.compose.material"
 androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 
-
-#Hilt
+# Hilt
 atomicfu = { module = "org.jetbrains.kotlinx:atomicfu", version.ref = "atomicfu" }
 billing = { module = "com.android.billingclient:billing", version.ref = "billing" }
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "retrofit" }
