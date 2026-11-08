@@ -112,6 +112,14 @@ fun SettingsScreen(
                         onClick = { navController.safeNavigate(SettingRoutes.Network.route) }
                     )
                 )
+                add(
+                    SettingSection(
+                        title = stringResource(id = R.string.proxy_title),
+                        features = listOf("Firewall", "DNS", "WireGuard profiles", "User rules"),
+                        icon = Icons.Rounded.VpnKey,
+                        onClick = { navController.safeNavigate(SettingRoutes.Proxy.route) }
+                    )
+                )
                 if (!isShizukuMode) {
                     add(
                         SettingSection(
