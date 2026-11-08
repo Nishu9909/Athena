@@ -114,8 +114,8 @@ fun SettingsScreen(
                 )
                 add(
                     SettingSection(
-                        title = stringResource(id = R.string.proxy_title),
-                        features = listOf("Firewall", "DNS", "WireGuard profiles", "User rules"),
+                        title = "VPN Service",
+                        features = listOf("Athena local VPN firewall", "DNS filtering", "Domain rules"),
                         icon = Icons.Rounded.VpnKey,
                         onClick = { navController.safeNavigate(SettingRoutes.Proxy.route) }
                     )

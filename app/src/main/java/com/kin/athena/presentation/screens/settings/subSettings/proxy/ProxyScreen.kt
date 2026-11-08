@@ -16,11 +16,6 @@
  */
 package com.kin.athena.presentation.screens.settings.subSettings.proxy
 
-import android.content.ActivityNotFoundException
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import android.widget.Toast
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Dns
 import androidx.compose.material.icons.rounded.Http
@@ -28,12 +23,9 @@ import androidx.compose.material.icons.rounded.Rule
 import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.VpnKey
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
-import com.kin.athena.R
-import com.kin.athena.core.utils.extensions.safeNavigate
 import com.kin.athena.presentation.navigation.routes.SettingRoutes
+import com.kin.athena.core.utils.extensions.safeNavigate
 import com.kin.athena.presentation.screens.settings.components.IconType
 import com.kin.athena.presentation.screens.settings.components.SettingType
 import com.kin.athena.presentation.screens.settings.components.SettingsBox
@@ -46,24 +38,26 @@ fun ProxyScreen(
     navController: NavController,
     settings: SettingsViewModel,
 ) {
-    val context = LocalContext.current
+    val currentSettings = settings.settings.value
+    val vpnModeSelected = currentSettings.useRootMode != true && currentSettings.useShizukuMode != true
+    val selectedMethod = if (vpnModeSelected) "VPN service selected" else "Switch to VPN mode in Firewall Behavior"
 
     SettingsScaffold(
         settings = settings,
-        title = stringResource(id = R.string.proxy_title),
+        title = "VPN Service",
         onBackNavClicked = { navController.navigateUp() }
     ) {
         settingsContainer {
             SettingsBox(
-                title = "Cloudflare One",
-                description = "Open the official Cloudflare One client to enroll or connect.",
+                title = "Athena local VPN firewall",
+                description = "Routes device traffic through Athena's local VPN interface for firewall and DNS filtering. This is not a commercial VPN tunnel.",
                 icon = IconType.VectorIcon(Icons.Rounded.VpnKey),
-                actionType = SettingType.LINK,
-                onLinkClicked = { openCloudflareOne(context) }
+                actionType = SettingType.TEXT,
+                customText = selectedMethod
             )
             SettingsBox(
                 title = "Firewall mode",
-                description = "Choose Athena VPN, Root, or Shizuku firewall mode in Behavior settings.",
+                description = "Choose the Android VPN firewall mode or review the selected method.",
                 icon = IconType.VectorIcon(Icons.Rounded.Security),
                 actionType = SettingType.LINK,
                 onLinkClicked = { navController.safeNavigate(SettingRoutes.Behavior.route) }
@@ -72,61 +66,39 @@ fun ProxyScreen(
 
         settingsContainer {
             SettingsBox(
-                title = "Block unencrypted HTTP",
-                description = "Drops HTTP traffic on port 80 while Athena firewall is active.",
-                icon = IconType.VectorIcon(Icons.Rounded.Http),
-                actionType = SettingType.SWITCH,
-                variable = settings.settings.value.blockPort80,
-                onSwitchEnabled = { enabled ->
-                    settings.update(settings.settings.value.copy(blockPort80 = enabled))
-                }
-            )
-            SettingsBox(
-                title = "DNS providers and filtering",
-                description = "Choose a resolver, configure custom DNS, and manage blocklists.",
+                title = "DNS provider and blocklists",
+                description = "Configure Athena's resolver, custom DNS addresses, and DNS blocklists.",
                 icon = IconType.VectorIcon(Icons.Rounded.Dns),
                 actionType = SettingType.LINK,
                 onLinkClicked = { navController.safeNavigate(SettingRoutes.Dns.route) }
             )
             SettingsBox(
-                title = "User domain rules",
-                description = "Manage allowlist and blocklist rules with Athena's existing rule engine.",
+                title = "Custom domain rules",
+                description = "Manage the existing domain allowlist and blocklist.",
                 icon = IconType.VectorIcon(Icons.Rounded.Rule),
                 actionType = SettingType.LINK,
                 onLinkClicked = { navController.safeNavigate(SettingRoutes.DomainManagement.route) }
+            )
+            SettingsBox(
+                title = "Block unencrypted HTTP",
+                description = "Block TCP port 80 while Athena's firewall is active.",
+                icon = IconType.VectorIcon(Icons.Rounded.Http),
+                actionType = SettingType.SWITCH,
+                variable = currentSettings.blockPort80,
+                onSwitchEnabled = { enabled ->
+                    settings.update(settings.settings.value.copy(blockPort80 = enabled))
+                }
             )
         }
 
         settingsContainer {
             SettingsBox(
-                title = "WireGuard profiles",
-                description = "Athena does not yet import or run WireGuard .conf tunnels. Use the official WireGuard app; Android permits one active VPN at a time.",
-                icon = IconType.VectorIcon(Icons.Rounded.VpnKey),
+                title = "External VPN compatibility",
+                description = "Android allows one active VPN per user. Connecting WireGuard or Cloudflare One will replace or conflict with Athena's VPN firewall. Athena does not import WireGuard .conf files or embed Cloudflare WARP.",
+                icon = IconType.VectorIcon(Icons.Rounded.Security),
                 actionType = SettingType.TEXT,
-                customText = "Not available"
-            )
-            SettingsBox(
-                title = "UserScripts",
-                description = "Arbitrary JavaScript execution is not supported. Use the declarative domain allow/block rules above.",
-                icon = IconType.VectorIcon(Icons.Rounded.Rule),
-                actionType = SettingType.TEXT,
-                customText = "Not available"
+                customText = "Use one VPN service at a time"
             )
         }
-    }
-}
-
-private fun openCloudflareOne(context: Context) {
-    val launchIntent = context.packageManager.getLaunchIntentForPackage("com.cloudflare.onedotone")
-    try {
-        if (launchIntent != null) {
-            context.startActivity(launchIntent)
-        } else {
-            context.startActivity(
-                Intent(Intent.ACTION_VIEW, Uri.parse("https://one.dash.cloudflare.com"))
-            )
-        }
-    } catch (_: ActivityNotFoundException) {
-        Toast.makeText(context, "Install the Cloudflare One app to connect to WARP.", Toast.LENGTH_LONG).show()
     }
 }
