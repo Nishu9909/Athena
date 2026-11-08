@@ -1,0 +1,199 @@
+/*
+ * Copyright (C) 2025-2026 Vexzure
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.kin.athena.presentation.screens.settings.subSettings.proxy
+
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.net.wifi.WifiManager
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Dns
+import androidx.compose.material.icons.rounded.Public
+import androidx.compose.material.icons.rounded.Router
+import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.VpnKey
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.navigation.NavController
+import com.kin.athena.R
+import com.kin.athena.presentation.screens.settings.components.IconType
+import com.kin.athena.presentation.screens.settings.components.SettingType
+import com.kin.athena.presentation.screens.settings.components.SettingsBox
+import com.kin.athena.presentation.screens.settings.components.SettingsScaffold
+import com.kin.athena.presentation.screens.settings.components.settingsContainer
+import com.kin.athena.presentation.screens.settings.viewModel.SettingsViewModel
+import java.net.InetAddress
+import java.net.NetworkInterface
+
+@Composable
+fun ProxyScreen(
+    navController: NavController,
+    settings: SettingsViewModel,
+) {
+    val context = LocalContext.current
+    var proxyEnabled by remember { mutableStateOf(false) }
+    var dnsProtectionEnabled by remember { mutableStateOf(true) }
+    var wireGuardEnabled by remember { mutableStateOf(false) }
+    var zeroTrustEnabled by remember { mutableStateOf(false) }
+
+    val localIp = remember(context) { getLocalIpAddress(context) }
+    val teamStatus = if (zeroTrustEnabled) "Connected to Cloudflare Zero Trust" else "Official Cloudflare One client required"
+    val tunnelSummary = if (proxyEnabled) "Secure tunnel mode active" else "Secure tunnel mode off"
+
+    SettingsScaffold(
+        settings = settings,
+        title = stringResource(id = R.string.proxy_title),
+        onBackNavClicked = { navController.navigateUp() }
+    ) {
+        settingsContainer {
+            SettingsBox(
+                title = stringResource(R.string.proxy_cloudflare_one_title),
+                description = stringResource(R.string.proxy_cloudflare_one_desc),
+                icon = IconType.VectorIcon(Icons.Rounded.VpnKey),
+                actionType = SettingType.CUSTOM,
+                customAction = { onExit ->
+                    openCloudflareOne(context)
+                    onExit()
+                }
+            )
+            SettingsBox(
+                title = stringResource(R.string.proxy_mode_title),
+                description = stringResource(R.string.proxy_mode_desc),
+                icon = IconType.VectorIcon(Icons.Rounded.Router),
+                actionType = SettingType.SWITCH,
+                variable = proxyEnabled,
+                onSwitchEnabled = { proxyEnabled = it }
+            )
+            SettingsBox(
+                title = stringResource(R.string.proxy_zero_trust_toggle),
+                description = teamStatus,
+                icon = IconType.VectorIcon(Icons.Rounded.Shield),
+                actionType = SettingType.SWITCH,
+                variable = zeroTrustEnabled,
+                onSwitchEnabled = { zeroTrustEnabled = it }
+            )
+        }
+
+        settingsContainer {
+            SettingsBox(
+                title = stringResource(R.string.proxy_firewall_title),
+                description = stringResource(R.string.proxy_firewall_desc),
+                icon = IconType.VectorIcon(Icons.Rounded.Shield),
+                actionType = SettingType.SWITCH,
+                variable = settings.settings.value.useRootMode == true || settings.settings.value.useShizukuMode == true,
+                onSwitchEnabled = { enabled ->
+                    if (enabled) {
+                        settings.update(settings.settings.value.copy(useRootMode = true, useShizukuMode = false))
+                    } else {
+                        settings.update(settings.settings.value.copy(useRootMode = false, useShizukuMode = false))
+                    }
+                }
+            )
+            SettingsBox(
+                title = stringResource(R.string.proxy_dns_title),
+                description = stringResource(R.string.proxy_dns_desc),
+                icon = IconType.VectorIcon(Icons.Rounded.Dns),
+                actionType = SettingType.SWITCH,
+                variable = dnsProtectionEnabled,
+                onSwitchEnabled = { dnsProtectionEnabled = it }
+            )
+            SettingsBox(
+                title = stringResource(R.string.proxy_wireguard_title),
+                description = stringResource(R.string.proxy_wireguard_desc),
+                icon = IconType.VectorIcon(Icons.Rounded.Public),
+                actionType = SettingType.CUSTOM,
+                customAction = { onExit ->
+                    wireGuardEnabled = !wireGuardEnabled
+                    onExit()
+                }
+            )
+        }
+
+        settingsContainer {
+            SettingsBox(
+                title = stringResource(R.string.proxy_status_title),
+                description = tunnelSummary,
+                icon = IconType.VectorIcon(Icons.Rounded.Speed),
+                actionType = SettingType.TEXT,
+                customText = tunnelSummary
+            )
+            SettingsBox(
+                title = stringResource(R.string.proxy_ip_title),
+                description = localIp ?: stringResource(R.string.proxy_ip_unknown),
+                icon = IconType.VectorIcon(Icons.Rounded.Public),
+                actionType = SettingType.TEXT,
+                customText = localIp ?: stringResource(R.string.proxy_ip_unknown)
+            )
+            SettingsBox(
+                title = stringResource(R.string.proxy_ping_title),
+                description = stringResource(R.string.proxy_ping_unknown),
+                icon = IconType.VectorIcon(Icons.Rounded.Speed),
+                actionType = SettingType.TEXT,
+                customText = stringResource(R.string.proxy_ping_unknown)
+            )
+            SettingsBox(
+                title = stringResource(R.string.proxy_location_title),
+                description = stringResource(R.string.proxy_location_unknown),
+                icon = IconType.VectorIcon(Icons.Rounded.Public),
+                actionType = SettingType.TEXT,
+                customText = stringResource(R.string.proxy_location_unknown)
+            )
+        }
+    }
+}
+
+private fun openCloudflareOne(context: Context) {
+    val launchIntent = context.packageManager.getLaunchIntentForPackage("com.cloudflare.onedotone")
+    val intent = launchIntent ?: Intent(Intent.ACTION_VIEW, Uri.parse("https://one.dash.cloudflare.com"))
+    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    context.startActivity(intent)
+}
+
+private fun getLocalIpAddress(context: Context): String? {
+    return try {
+        val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+        val wifiInfo = wifiManager?.connectionInfo
+        val ip = wifiInfo?.ipAddress ?: return null
+        val ipString = String.format(
+            "%d.%d.%d.%d",
+            ip and 0xff,
+            (ip shr 8) and 0xff,
+            (ip shr 16) and 0xff,
+            (ip shr 24) and 0xff
+        )
+        if (ipString == "0.0.0.0") null else ipString
+    } catch (_: Exception) {
+        try {
+            NetworkInterface.getNetworkInterfaces()?.toList()
+                ?.flatMap { it.inetAddresses?.toList() ?: emptyList() }
+                ?.firstOrNull { !it.isLoopbackAddress && !it.hostAddress.isNullOrBlank() && it.hostAddress.contains('.') }
+                ?.hostAddress
+        } catch (_: Exception) {
+            null
+        }
+    }
+}
+
+private fun InetAddress.isLoopbackAddress(): Boolean = this.isLoopbackAddress
+private fun String?.isNullOrBlank(): Boolean = this.isNullOrBlank()
+
